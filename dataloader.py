@@ -13,9 +13,52 @@ import skimage.io
 import skimage.transform
 import skimage.color
 import skimage
-
+import matplotlib.pyplot as plt
 from PIL import Image
 
+
+def get_normal_image(path):
+    '''
+    加载一幅普通格式的2D图像，支持格式：.jpg, .jpeg, .tif ...
+    :param path: 医学图像的路径
+    :return: array: numpy格式
+    '''
+    array = Image.open(path)
+    array = np.asarray(array)
+    return array
+
+def norm_zero_one(array):
+    '''
+    根据所给数组的最大值、最小值，将数组归一化到0-1
+    :param array: 数组
+    :return: array: numpy格式数组
+    '''
+    array = np.asarray(array)
+    mini = array.min()
+    maxi = array.max()
+    range = maxi - mini
+
+    def norm(x):
+        if range !=0:
+         return (x-mini)/range
+        else:
+            return x*0
+    return np.asarray(list(map(norm,array)))
+
+## 归一化，Z-score标准化
+def norm_z_score(array):
+    '''
+    根据所给数组的均值和标准差进行归一化，归一化结果符合正态分布，即均值为0，标准差为1
+    :param array: 数组
+    :return: array: numpy格式数组
+    '''
+    array = np.asarray(array)
+    mu = np.average(array) ## 均值
+    sigma = np.std(array)  ## 标准差
+
+    def norm(x):
+        return (x-mu)/sigma
+    return np.asarray(list(map(norm,array)))
 
 class CSVDataset(Dataset):
     """CSV dataset."""
@@ -139,11 +182,12 @@ class CSVDataset(Dataset):
         """
         # img = skimage.io.imread(self.image_names[image_index])
 
-        img = cv2.imread(self.image_names[image_index])
+        img = get_normal_image(self.image_names[image_index])
+        img=norm_zero_one(img)
+        #skimage.io.imshow(img)
         if len(img.shape) == 2:
             img = skimage.color.gray2rgb(img)
-
-        return img.astype(np.float32)/255.0
+        return img.astype(np.float32)
 
     def load_annotations(self, image_index):
         """[summary]
@@ -416,8 +460,8 @@ class Normalizer():
     """[image normalization]"""
     def __init__(self):
         """[summary]"""
-        self.mean = np.array([[[0.485, 0.456, 0.406]]])
-        self.std = np.array([[[0.229, 0.224, 0.225]]])
+        self.mean = np.array([[[0.5, 0.5, 0.5]]])
+        self.std = np.array([[[0.5, 0.5, 0.5]]])
 
     def __call__(self, sample):
         """[summary]
